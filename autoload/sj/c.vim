@@ -8,13 +8,22 @@ function! sj#c#SplitFuncall()
 
   call sj#PushCursor()
 
-  normal! l
-  let start = col('.')
-  normal! h%h
-  let end = col('.')
+  let range_start = col( '.' )
+  normal! %
+  let range_end = col( '.' )
+  let range = strpart( getline( '.' ), range_start - 1, (range_end - range_start) )
+  normal! %
 
-  let items = sj#ParseJsonObjectBody(start, end)
-  let body = '('.join(items, ",\n").')'
+  normal! w
+  let param_start = col( '.' )
+  normal! F(%ge
+  let param_end = col( '.' )
+
+  let prefix_whitespace = strpart( range, 1, param_start - range_start - 1)
+  let suffix_whitespace = strpart( range, param_end - range_start + 1, range_end - param_end - 1 )
+
+  let items = sj#ParseJsonObjectBody(range_start + 1, range_end - 1)
+  let body = '(' . prefix_whitespace . join(items, ",\n") . suffix_whitespace . ')'
 
   call sj#PopCursor()
 
@@ -27,7 +36,7 @@ function! sj#c#SplitIfClause()
     return 0
   endif
 
-  let items = sj#TrimList(split(getline('.'), '\ze\(&&\|||\)'))
+  let items = sj#TrimList(split(getline('.'), '\(&&\|||\)\zs'))
   let body  = join(items, "\n")
 
   call sj#ReplaceMotion('V', body)
